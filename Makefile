@@ -2,5 +2,5 @@ test:
 	flake8
 	bats tests/
 
-install:
+install: test
 	python merge-settings.py
