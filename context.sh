@@ -34,7 +34,7 @@ function update_repo {
 function output_instructions {
     for file in "$INSTRUCTIONS_DIR"/*.md; do
         if [ -e "$file" ]; then
-            header "$file"
+            file_header "$file" 1
             cat "$file"
             echo
         fi
@@ -42,52 +42,92 @@ function output_instructions {
 
     for entry in "$INSTRUCTIONS_DIR"/*; do
         if [ -d "$entry" ]; then
-            process_dir "$entry"
+            process_dir "$entry" 1
         fi
     done
 }
 
-function header {
+function file_header {
     local path="$1"
-    local relative="${path#$INSTRUCTIONS_DIR/}"
-    local name="${relative%.*}"
-    local depth=1
+    local depth="$2"
+    local name
+    name=$(basename "$path")
+    name="${name%.*}"
 
-    IFS='/' read -ra parts <<< "$name"
-    for part in "${parts[@]}"; do
-        printf '%*s' "$depth" '' | tr ' ' '#'
-        echo " $(titlecase "$part")"
-        ((depth++))
-    done
+    printf '%*s' "$depth" '' | tr ' ' '#'
+    echo " $(titlecase "$name")"
     echo
 }
 
 function process_dir {
     local dir="$1"
-    local has_script=0
+    local depth="$2"
+    local has_subdir=0
+    local script_files=()
+    local success_files=()
+    local success_outputs=()
 
-    for file in "$dir"/*; do
-        [ -e "$file" ] || continue
-        [ -d "$file" ] && continue
-        if [ -x "$file" ]; then
-            has_script=1
-            header "$file"
-            "$file" || true
-            echo
+    for entry in "$dir"/*; do
+        [ -e "$entry" ] || continue
+        if [ -d "$entry" ]; then
+            has_subdir=1
+        elif [ -x "$entry" ]; then
+            script_files+=("$entry")
         fi
     done
 
-    if [ "$has_script" -eq 0 ]; then
-        for file in "$dir"/*.md; do
-            [ -e "$file" ] || continue
-            header "$file"
-            cat "$file"
+    if [ ${#script_files[@]} -gt 0 ]; then
+        for file in "${script_files[@]}"; do
+            if output=$("$file" 2>&1); then
+                success_files+=("$file")
+                success_outputs+=("$output")
+            fi
+        done
+
+        [ ${#success_files[@]} -eq 0 ] && return
+
+        dir_header "$dir" "$depth" "${#success_files[@]}" "$has_subdir"
+        ((depth++))
+
+        for i in "${!success_files[@]}"; do
+            file_header "${success_files[$i]}" "$depth"
+            echo "${success_outputs[$i]}"
             echo
         done
-        for subdir in "$dir"/*; do
-            [ -d "$subdir" ] || continue
-            process_dir "$subdir"
-        done
+        return
+    fi
+
+    local md_files=()
+    for file in "$dir"/*.md; do
+        [ -e "$file" ] || continue
+        md_files+=("$file")
+    done
+
+    dir_header "$dir" "$depth" "${#md_files[@]}" "$has_subdir"
+    ((depth++))
+
+    for file in "${md_files[@]}"; do
+        file_header "$file" "$depth"
+        cat "$file"
+        echo
+    done
+    for subdir in "$dir"/*; do
+        [ -d "$subdir" ] || continue
+        process_dir "$subdir" "$depth"
+    done
+}
+
+function dir_header {
+    local dir="$1"
+    local depth="$2"
+    local child_count="$3"
+    local has_subdir="$4"
+
+    printf '%*s' "$depth" '' | tr ' ' '#'
+    echo " $(titlecase "$(basename "$dir")")"
+
+    if [ "$depth" -gt 1 ] || [ "$child_count" -gt 1 ] || [ "$has_subdir" -eq 1 ]; then
+        echo
     fi
 }
 

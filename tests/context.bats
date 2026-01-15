@@ -126,11 +126,11 @@ run_context() {
 @test "all scripts in subdirectory are run" {
     expected_output=$(sed -e 's/^        //' <<-EOF
         # Test
+
         ## First
 
         first
 
-        # Test
         ## Second
 
         second
@@ -157,7 +157,9 @@ run_context() {
 @test "nested directories use deeper headings" {
     expected_output=$(sed -e 's/^        //' <<-EOF
         # Alpha
+
         ## Beta
+
         ### File
 
         nested content
@@ -198,15 +200,11 @@ run_context() {
 @test "failing script does not exit early" {
     expected_output=$(sed -e 's/^        //' <<-EOF
         # Test
+
         ## Before
 
         before
 
-        # Test
-        ## Fail
-
-
-        # Test
         ## After
 
         after
@@ -232,5 +230,18 @@ run_context() {
 
     run run_context
     diff -u <(echo "$expected_output") <(echo "$output")
+    [ $status -eq 0 ]
+}
+
+@test "directory with only failing script produces no output" {
+    mkdir -p "$TEST_INSTRUCTIONS/test"
+    sed -e 's/^        //' <<-EOF > "$TEST_INSTRUCTIONS/test/fail.sh"
+        #!/bin/sh
+        exit 1
+	EOF
+    chmod +x "$TEST_INSTRUCTIONS/test/fail.sh"
+
+    run run_context
+    [ -z "$output" ]
     [ $status -eq 0 ]
 }
