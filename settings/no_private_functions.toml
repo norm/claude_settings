@@ -1,0 +1,8 @@
+[hooks]
+
+[[hooks.PreToolUse]]
+matcher = "Edit|Write"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "{SCRIPT_DIR}/scripts/no_private_functions.py"

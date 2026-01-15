@@ -1,0 +1,4 @@
+alwaysThinkingEnabled = true
+
+[permissions]
+defaultMode = "acceptEdits"
