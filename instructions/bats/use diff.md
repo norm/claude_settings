@@ -1,6 +1,8 @@
 Use `diff` in tests not equality or substring matching, so that when things
 fail it shows up in the test runner output. Check `$status` last.
 
+Heredocs are used with sed to strip the indentation, and a tabbed EOF.
+
 ```bash
 @test "some test" {
     expected_output=$(sed -e 's/^        //' <<-EOF
