@@ -6,7 +6,7 @@ setup() {
 }
 
 run_context() {
-    INSTRUCTIONS_DIR="$TEST_INSTRUCTIONS" "$PWD/context.sh"
+    INSTRUCTIONS_DIR="$TEST_INSTRUCTIONS" "$PWD/context.sh" -s
 }
 
 @test "empty instructions produces no output" {
@@ -170,6 +170,29 @@ run_context() {
     run run_context
     diff -u <(echo "$expected_output") <(echo "$output")
     [ $status -eq 0 ]
+}
+
+@test "git pull runs in script directory not current directory" {
+    script_dir="$PWD"
+
+    mock_bin="$BATS_TEST_TMPDIR/bin"
+    mkdir -p "$mock_bin"
+    sed -e 's/^        //' <<-EOF > "$mock_bin/git"
+        #!/bin/sh
+        echo "\$@" > "$BATS_TEST_TMPDIR/git_args"
+	EOF
+    chmod +x "$mock_bin/git"
+
+    run_dir="$BATS_TEST_TMPDIR/elsewhere"
+    mkdir -p "$run_dir"
+    cd "$run_dir"
+
+    PATH="$mock_bin:$PATH" \
+    INSTRUCTIONS_DIR="$TEST_INSTRUCTIONS" \
+        "$script_dir/context.sh" \
+            2>/dev/null
+
+    diff -u <(echo "-C $script_dir pull --quiet") <(cat "$BATS_TEST_TMPDIR/git_args")
 }
 
 @test "failing script does not exit early" {

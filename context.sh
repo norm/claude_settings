@@ -3,9 +3,20 @@
 SCRIPT_DIR=$(dirname "$(realpath "$BASH_SOURCE")")
 INSTRUCTIONS_DIR="${INSTRUCTIONS_DIR:-$SCRIPT_DIR/instructions}"
 
+skip_pull=0
+while getopts "s" opt; do
+    case "$opt" in
+        s)  skip_pull=1 ;;
+        *)  echo "Usage: $0 [-s]" >&2
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
 
 function main {
-    update_repo
+    [ "$skip_pull" -eq 0 ] && update_repo
     update_settings
     output_instructions
 }
@@ -16,7 +27,7 @@ function update_settings {
 
 function update_repo {
     timeout 3 \
-        git pull --quiet \
+        git -C "$SCRIPT_DIR" pull --quiet \
             2>/dev/null || true
 }
 
