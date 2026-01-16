@@ -252,3 +252,29 @@ run_context() {
     [ -z "$output" ]
     [ $status -eq 0 ]
 }
+
+@test "stdin is saved to /tmp/sessionstart.json" {
+    expected_file=$(sed -e 's/^        //' <<-EOF
+        {
+          "session_id": "abc123",
+          "model": "claude"
+        }
+	EOF
+    )
+    rm -f /tmp/sessionstart.json
+
+    echo '{"session_id":"abc123","model":"claude"}' | run_context
+
+    diff -u <(echo "$expected_file") <(cat /tmp/sessionstart.json)
+}
+
+@test "stdin is echoed to output" {
+    expected_output=$(sed -e 's/^        //' <<-EOF
+        {"session_id":"abc123"}
+	EOF
+    )
+
+    run bash -c 'echo "{\"session_id\":\"abc123\"}" | INSTRUCTIONS_DIR="'"$TEST_INSTRUCTIONS"'" '"$PWD"'/context.sh -s'
+    diff -u <(echo "$expected_output") <(echo "$output")
+    [ $status -eq 0 ]
+}

@@ -16,6 +16,11 @@ shift $((OPTIND-1))
 
 
 function main {
+    local stdin
+    stdin=$(cat)
+    echo "$stdin" | jq . > /tmp/sessionstart.json
+    [ -n "$stdin" ] && echo "$stdin"
+
     [ "$skip_pull" -eq 0 ] && update_repo
     update_settings
     output_instructions
