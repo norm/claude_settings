@@ -33,6 +33,7 @@ run_context() {
 @test "directory without script outputs Markdown file contents" {
     expected_output=$(sed -e 's/^        //' <<-EOF
         # Test
+
         ## Readme
 
         from subdir
@@ -48,20 +49,25 @@ run_context() {
     [ $status -eq 0 ]
 }
 
-@test "directory with script only runs script" {
+@test "directory with script and markdown outputs both alphabetically" {
     expected_output=$(sed -e 's/^        //' <<-EOF
         # Test
+
+        ## Readme
+
+        from markdown
+
         ## Run
 
-        only this
+        from script
 	EOF
     )
 
     mkdir -p "$TEST_INSTRUCTIONS/test"
-    echo "should not appear" > "$TEST_INSTRUCTIONS/test/readme.md"
+    echo "from markdown" > "$TEST_INSTRUCTIONS/test/readme.md"
     sed -e 's/^        //' <<-EOF > "$TEST_INSTRUCTIONS/test/run.sh"
         #!/bin/sh
-        echo "only this"
+        echo "from script"
 	EOF
     chmod +x "$TEST_INSTRUCTIONS/test/run.sh"
 
@@ -85,6 +91,7 @@ run_context() {
         from file
 
         # Alpha
+
         ## Content
 
         from dir
